@@ -88,12 +88,9 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'test_db',       # Your DB name
         'USER': 'root',           # Your MySQL username
-        'PASSWORD': '1234',   # Your MySQL password
+        'PASSWORD': 'Sc04p10n_01$$',   # Your MySQL password
         'HOST': '127.0.0.1',    # Use '127.0.0.1' instead of 'localhost'
         'PORT': '3306',         # Use 3306 if running a standard MySQL server
-        'OPTIONS': {
-            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'"
-        }
     }
 }
 
