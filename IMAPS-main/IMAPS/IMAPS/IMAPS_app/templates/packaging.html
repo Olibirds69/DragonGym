@@ -1,0 +1,1287 @@
+<!DOCTYPE html>
+<html lang="en">
+{% load static %}
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Packaging Materials Inventory</title>
+  <link rel="stylesheet" href="{% static 'IMAPS_app/css/styles.css' %}">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    /* Right-align numeric columns: Quantity Bought, Quantity Left, and Cost */
+    table tbody td {
+      text-align: left;
+    }
+    table tbody td:nth-child(3),
+    table tbody td:nth-child(4),
+    table tbody td:nth-child(5),
+    table tbody td:nth-child(10) {
+      text-align: right;
+    }
+    /* Extra spacing for form groups in modals */
+    .modal-content .form-group {
+      margin-bottom: 20px;
+    }
+    /* Styling for alert messages */
+    .alert {
+      background-color: #f8d7da;
+      color: #721c24;
+      padding: 10px;
+      margin-bottom: 10px;
+      border: 1px solid #f5c6cb;
+      border-radius: 4px;
+    }
+    .radio-group {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      margin-left: 0px;
+      margin-top: 5px;
+    }
+
+    .radio-option {
+      display: flex;
+      align-items: center;
+      margin-bottom: 5px;
+    }
+
+    .radio-option input[type="radio"] {
+      width: 16px;
+      height: 16px;
+      margin: 0;
+      cursor: pointer;
+    }
+
+    .radio-option label {
+      cursor: pointer;
+      padding-left: 6px;
+      font-size: 14px;
+      margin-bottom: 0;
+      font-weight: normal;
+    }
+
+    /* Add styles for the form group containing radio buttons */
+    .form-group:has(.radio-group) {
+      margin-bottom: 10px;
+    }
+
+    #subtractPackagingModal .modal-content {
+      max-width: 400px;
+      padding: 20px;
+    }
+
+    #subtractPackagingModal .modal-header {
+      margin: -20px -20px 20px -20px;
+      padding: 15px 20px;
+      border-bottom: 1px solid #ddd;
+      background: #f8f9fa;
+    }
+
+    #subtractPackagingModal .modal-header h2 {
+      margin: 0;
+      font-size: 18px;
+    }
+
+    #subtractPackagingModal form {
+      padding: 0 15px;
+    }
+
+    #subtractPackagingModal form > div {
+      margin-bottom: 15px;
+    }
+
+    #subtractPackagingModal label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: normal;
+    }
+
+    #subtractPackagingModal input[type="password"],
+    #subtractPackagingModal input[type="number"],
+    #subtractPackagingModal input[type="date"],
+    #subtractPackagingModal select {
+      width: 100%;
+      padding: 6px 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      box-sizing: border-box;
+    }
+
+    #subtractPackagingModal input[type="radio"] {
+      margin-right: 8px;
+    }
+
+    #subtractPackagingModal input[type="radio"] + label {
+      display: inline;
+      margin-bottom: 0;
+    }
+
+    #subtractPackagingModal .button-container {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      margin: 20px -15px 0;
+      padding: 15px 15px 0;
+      border-top: 1px solid #eee;
+    }
+
+    #subtractPackagingModal .button-container button {
+      padding: 6px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      min-width: 80px;
+    }
+
+    #subtractPackagingModal .button-outline {
+      background: white;
+      border: 1px solid #ddd;
+    }
+
+    #subtractPackagingModal .update-button {
+      background: #007bff;
+      color: white;
+      border: none;
+    }
+
+    #usedPackagingHistoryModal .modal-content {
+      background: white;
+      border-radius: 8px;
+      width: 95%;
+      max-width: 1000px;
+      margin: 20px auto;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      overflow: hidden;
+      padding: 20px;
+    }
+  </style>
+</head>
+<body>
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="logo">
+      <img src="{% static 'IMAPS_app/images/logo.png' %}" alt="Glow Glass Logo">
+    </div>
+    <ul class="nav-menu">
+      <li class="nav-item active">
+        <a href="{% url 'packaging_list' %}">
+          <span class="icon">📦</span>
+          <span class="text">Packaging Materials</span>
+        </a>
+      </li>
+      <li class="nav-item">
+        <a href="{% url 'ingredients_list' %}">
+          <span class="icon">🌿</span>
+          <span class="text">Ingredients</span>
+        </a>
+      </li>
+      <li class="nav-item">
+        <a href="{% url 'suppliers_list' %}">
+          <span class="icon">🏭</span>
+          <span class="text">Suppliers</span>
+        </a>
+      </li>
+      <li class="nav-item">
+        <a href="{% url 'report_summary' %}">
+          <span class="icon">📊</span>
+          <span class="text">Generate Report</span>
+        </a>
+      </li>
+    </ul>
+  </div>
+
+  <!-- MAIN CONTENT -->
+  <div class="main-content">
+    <h1>Packaging Materials Inventory</h1>
+    <!-- Error message container -->
+    <div id="mainErrorContainer" class="alert" style="display: none; margin: 0 20px 20px; padding: 15px; border-radius: 4px;">
+      <div id="errorTitle" style="font-weight: bold; margin-bottom: 8px;"></div>
+      <div id="errorContent"></div>
+    </div>
+    <!-- Error message container -->
+    <div id="errorMessageContainer" class="alert" style="display: none; margin-bottom: 20px;"></div>
+    <!-- Messages Block -->
+    {% if messages %}
+      <div id="messages">
+        {% for message in messages %}
+          <div class="alert">
+            {{ message }}
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+    <div class="button-container">
+      <button class="button-outline" onclick="openModal('usedPackagingHistoryModal')">History of Used Packaging</button>
+      <button class="button-outline" onclick="openModal('addPackagingModal')">+ Add Packaging Materials</button>
+      <button class="button-outline" onclick="openModal('subtractPackagingModal')">Subtract Materials</button>
+      <button class="import-button">Import Data</button>
+    </div>
+
+    <!-- Packaging Table -->
+    <div class="table-container">
+      <table>
+        <colgroup>
+          <col style="width: 11%;"> <!-- Packaging Name -->
+          <col style="width: 8%;"> <!-- Batch Code -->
+          <col style="width: 8%;"> <!-- Quantity Bought -->
+          <col style="width: 8%;"> <!-- Quantity Left -->
+          <col style="width: 8%;"> <!-- Total Qty. Available -->
+          <col style="width: 11%;"> <!-- Supplier -->
+          <col style="width: 12%;"> <!-- Date Delivered -->
+          <col style="width: 8%;">  <!-- Use Category -->
+          <col style="width: 8%;">  <!-- Status -->
+          <col style="width: 8%;">  <!-- Cost -->
+          <col style="width: 10%;"> <!-- Options -->
+        </colgroup>
+        <thead>
+          <tr class="table-header">
+            <th class="pagination" colspan="6" style="text-align: left;">
+              Page <span id="packCurrentPage">1</span>/<span id="packTotalPages">1</span>
+              <button class="pageButton" onclick="changePackagingPage(-1)" id="packPrev">&lt;</button>
+              <button class="pageButton" onclick="changePackagingPage(1)" id="packNext">&gt;</button>
+            </th>
+            <th class="search-bar-container" colspan="5" style="text-align: right;">
+              <div class="search-bar" style="display: inline-flex; align-items: center;">
+                <i class="fa-solid fa-magnifying-glass search-icon" id="packagingSearchIcon" style="cursor: pointer;"></i>
+                <input type="text" class="search-input" id="packagingSearchInput" placeholder="Search Packaging..." style="padding: 4px 8px; font-size: 14px;">
+                <button class="menu-button" id="packagingFilterMenu" style="background: none; border: none; margin-left: 6px; cursor: pointer;">
+                  <svg viewBox="0 0 24 24">
+                    <path d="M3 12h18M3 6h18M3 18h18" stroke="#555" stroke-width="2" stroke-linecap="round"/>
+                  </svg>
+                </button>
+              </div>
+            </th>
+          </tr>
+          <tr>
+            <th>Packaging Name</th>
+            <th>Batch Code</th>
+            <th>Quantity Bought</th>
+            <th>Quantity Left</th>
+            <th>Total Qty. Available</th>
+            <th>Supplier</th>
+            <th>Date Delivered</th>
+            <th>Use Category</th>
+            <th>Status</th>
+            <th>Total Cost</th>
+            <th>Options</th>
+          </tr>
+        </thead>
+        <tbody id="packagingTableBody">
+          {% for material in materials %}
+          <tr data-packaging-code="{{ material.PackagingBatchCode }}" data-packaging-pk="{{ material.id }}" data-date-delivered="{{ material.DateDelivered|date:'Y-m-d' }}">
+            <td>
+              {{ material.RawMaterialName }}
+              {% if material.ContainerSize %}
+                ({{ material.ContainerSize }})
+              {% endif %}
+            </td>
+            <td>{{ material.PackagingBatchCode }}</td>
+            <td>{{ material.QuantityBought }}</td>
+            <td>{{ material.QuantityLeft }}</td>
+            <td>{{ material.TotalQuantityAvailable }}</td>
+            <td>{{ material.SupplierCode }}</td>
+            <td>{{ material.DateDelivered|date:"Y-m-d" }}</td>
+            <td>{{ material.UseCategory }}</td>
+            <td>
+              {% if material.Status == "Low Inventory" %}
+                <span class="status-pill red">Low Inventory</span>
+              {% elif material.Status == "OK" %}
+                <span class="status-pill green">OK</span>
+              {% else %}
+                <span class="status-pill">{{ material.Status }}</span>
+              {% endif %}
+            </td>
+            <td>₱{{ material.Cost }}</td>
+            <td>
+              <button class="update-button" onclick="openUpdateModalPackaging('{{ material.PackagingBatchCode }}', '{{ material.RawMaterialName }}', '{{ material.ContainerSize }}', '{{ material.DateDelivered|date:"Y-m-d" }}', '{{ material.QuantityBought }}', '{{ material.QuantityLeft }}', '{{ material.UseCategory }}', '{{ material.Cost }}', '{{ material.SupplierCode.SupplierCode }}')">Update</button>
+              <button class="delete-button" onclick="openDeleteModalPackaging('{{ material.id }}', '{{ material.PackagingBatchCode }}', '{{ material.RawMaterialName }}')">Delete</button>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="11">No Packaging Materials Found.</td>
+          </tr>
+          {% endfor %}
+          <tr id="noPackagingRow" style="display: none;">
+            <td colspan="11" style="text-align: center; color: gray;">No matching packaging materials found.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ============= MODALS ============= -->
+
+  <!-- 1) Add Packaging Modal -->
+  <div id="addPackagingModal" class="modal">
+    <div class="modal-content" style="max-width: 400px; padding: 20px;">
+      <div class="modal-header" style="margin: -20px -20px 20px -20px; padding: 15px 20px; border-bottom: 1px solid #ddd; background: #f8f9fa;">
+        <h2 style="margin: 0; font-size: 18px;">Add Packaging Material</h2>
+        <span class="close" onclick="closeModal('addPackagingModal')">&times;</span>
+      </div>
+      <form method="POST" action="{% url 'packaging_create' %}" id="createPackagingForm">
+        {% csrf_token %}
+        {% for field in create_form %}
+          {% if field.name != 'Status' and field.name != 'PackagingBatchCode' %}
+          <div style="margin-bottom: 15px;">
+            <label for="{{ field.id_for_label }}" style="display: block; margin-bottom: 5px; font-weight: normal;">
+              {{ field.label }}{% if field.field.required %}<span style="color: red;">*</span>{% endif %}:
+            </label>
+            {% if field.name == 'UseCategory' %}
+              <div style="margin-top: 10px;">
+                {% for radio in field %}
+                  <div style="margin-bottom: 8px;">
+                    {{ radio.tag }}
+                    <label for="{{ radio.id_for_label }}" style="display: inline; margin-bottom: 0; margin-left: 8px;">
+                      {% if radio.choice_value == 'WBC' %}
+                        White Labeled Client
+                      {% elif radio.choice_value == 'GGB' %}
+                        Glow Glass Beauty
+                      {% else %}
+                        {{ radio.choice_label }}
+                      {% endif %}
+                    </label>
+                  </div>
+                {% endfor %}
+              </div>
+            {% else %}
+              <input type="{{ field.field.widget.input_type }}" 
+                     name="{{ field.name }}" 
+                     id="{{ field.id_for_label }}" 
+                     {% if field.field.required %}required{% endif %}
+                     style="width: 100%; padding: 6px 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box;"
+                     {% if field.name == 'QuantityBought' or field.name == 'Cost' %}step="any" min="0"{% endif %}>
+            {% endif %}
+            {% for err in field.errors %}
+              <div class="text-danger">{{ err }}</div>
+            {% endfor %}
+          </div>
+          {% endif %}
+        {% endfor %}
+        <div class="button-container" style="display: flex; justify-content: flex-end; gap: 10px; margin: 20px -15px 0; padding: 15px 15px 0; border-top: 1px solid #eee;">
+          <button type="button" class="button-outline" onclick="closeModal('addPackagingModal')" style="padding: 6px 12px; border-radius: 4px; min-width: 80px;">Discard</button>
+          <button type="submit" class="update-button" style="padding: 6px 12px; border-radius: 4px; min-width: 80px;">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 2) Update Packaging Modal -->
+  <div id="updatePackagingModal" class="modal">
+    <div class="modal-content" style="max-width: 400px; padding: 20px;">
+      <div class="modal-header" style="margin: -20px -20px 20px -20px; padding: 15px 20px; border-bottom: 1px solid #ddd; background: #f8f9fa;">
+        <h2 style="margin: 0; font-size: 18px;">Update Packaging Material (Code: <span id="modalPackagingBatchCode"></span>)</h2>
+        <span class="close" onclick="closeModal('updatePackagingModal')">&times;</span>
+      </div>
+      <form method="POST" id="updatePackagingForm" onsubmit="return handlePackagingUpdate(event);">
+        {% csrf_token %}
+        <div style="margin-bottom: 15px;">
+          <label for="updatePassword" style="display: block; margin-bottom: 5px; font-weight: normal;">
+            Password<span style="color: red;">*</span>:
+          </label>
+          <input type="password" id="updatePassword" name="password" required style="width: 100%; padding: 6px 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box;">
+        </div>
+        <input type="hidden" name="PackagingBatchCode" id="modalPackagingBatchCodeHidden" value="">
+        <input type="hidden" name="SupplierCode" id="modalSupplierCodeHidden" value="">
+        
+        <div style="margin-bottom: 15px;">
+          <label for="RawMaterialName" style="display: block; margin-bottom: 5px; font-weight: normal;">
+            Material Name<span style="color: red;">*</span>:
+          </label>
+          <input type="text" name="RawMaterialName" id="RawMaterialName" required style="width: 100%; padding: 6px 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box;">
+        </div>
+        
+        <div style="margin-bottom: 15px;">
+          <label for="ContainerSize" style="display: block; margin-bottom: 5px; font-weight: normal;">
+            Container Size<span style="color: red;">*</span>:
+          </label>
+          <input type="text" name="ContainerSize" id="ContainerSize" required style="width: 100%; padding: 6px 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box;">
+        </div>
+        
+        <div style="margin-bottom: 15px;">
+          <label for="DateDelivered" style="display: block; margin-bottom: 5px; font-weight: normal;">
+            Date Delivered<span style="color: red;">*</span>:
+          </label>
+          <input type="date" name="DateDelivered" id="DateDelivered" required style="width: 100%; padding: 6px 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box;">
+        </div>
+        
+        <div style="margin-bottom: 15px;">
+          <label for="QuantityBought" style="display: block; margin-bottom: 5px; font-weight: normal;">
+            Quantity Bought<span style="color: red;">*</span>:
+          </label>
+          <input type="number" name="QuantityBought" id="QuantityBought" required style="width: 100%; padding: 6px 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box;">
+        </div>
+        
+        <div style="margin-bottom: 15px;">
+          <label for="QuantityLeft" style="display: block; margin-bottom: 5px; font-weight: normal;">
+            Quantity Left<span style="color: red;">*</span>:
+          </label>
+          <input type="number" name="QuantityLeft" id="QuantityLeft" required style="width: 100%; padding: 6px 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box;">
+        </div>
+        
+        <div style="margin-bottom: 15px;">
+          <label for="modalSupplierCode" style="display: block; margin-bottom: 5px; font-weight: normal;">
+            Supplier<span style="color: red;">*</span>:
+          </label>
+          <select id="modalSupplierCode" name="SupplierCode" required style="width: 100%; padding: 6px 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box;">
+            <option value="">Select a Supplier</option>
+          </select>
+        </div>
+        
+        <div style="margin-bottom: 15px;">
+          <label style="display: block; margin-bottom: 5px; font-weight: normal;">Use Category<span style="color: red;">*</span>:</label>
+          <div style="margin-top: 10px;">
+            <div style="margin-bottom: 8px;">
+              <input type="radio" name="UseCategory" value="WBC" id="packUseCategoryWBC" required style="margin-right: 8px;">
+              <label for="packUseCategoryWBC" style="display: inline; margin-bottom: 0;">White Labeled Client</label>
+            </div>
+            <div style="margin-bottom: 8px;">
+              <input type="radio" name="UseCategory" value="GGB" id="packUseCategoryGGB" style="margin-right: 8px;">
+              <label for="packUseCategoryGGB" style="display: inline; margin-bottom: 0;">Glow Glass Beauty</label>
+            </div>
+            <div style="margin-bottom: 8px;">
+              <input type="radio" name="UseCategory" value="Both" id="packUseCategoryBoth" style="margin-right: 8px;">
+              <label for="packUseCategoryBoth" style="display: inline; margin-bottom: 0;">Both</label>
+            </div>
+          </div>
+        </div>
+        
+        <div style="margin-bottom: 15px;">
+          <label for="Cost" style="display: block; margin-bottom: 5px; font-weight: normal;">
+            Total Cost<span style="color: red;">*</span>:
+          </label>
+          <input type="number" id="Cost" name="Cost" min="0" step="any" required style="width: 100%; padding: 6px 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box;">
+        </div>
+        
+        <input type="hidden" id="modalUsedPackaging" name="used" value="">
+        <div class="button-container" style="display: flex; justify-content: flex-end; gap: 10px; margin: 20px -15px 0; padding: 15px 15px 0; border-top: 1px solid #eee;">
+          <button type="button" class="button-outline" onclick="closeModal('updatePackagingModal')" style="padding: 6px 12px; border-radius: 4px; min-width: 80px;">Cancel</button>
+          <button type="submit" class="update-button" style="padding: 6px 12px; border-radius: 4px; min-width: 80px;">Update</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 3) Delete Packaging Modal -->
+  <div id="deletePackagingModal" class="modal">
+    <div class="modal-content" style="max-width: 400px; padding: 20px;">
+      <div class="modal-header" style="margin: -20px -20px 20px -20px; padding: 15px 20px; border-bottom: 1px solid #ddd; background: #f8f9fa;">
+        <h2 style="margin: 0; font-size: 18px;">Delete Packaging Material</h2>
+        <span class="close" onclick="closeModal('deletePackagingModal')">&times;</span>
+      </div>
+      <p id="deletePackagingMessage" style="margin-bottom: 15px;">Are you sure you want to delete this packaging material?</p>
+      <form method="POST" id="deletePackagingForm" onsubmit="return confirm('Are you sure you want to delete this record?');">
+        {% csrf_token %}
+        <div style="margin-bottom: 15px;">
+          <label for="deletePassword" style="display: block; margin-bottom: 5px; font-weight: normal;">Password<span style="color: red;">*</span>:</label>
+          <input type="password" id="deletePassword" name="password" required style="width: 100%; padding: 6px 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box;">
+        </div>
+        <div class="button-container" style="display: flex; justify-content: flex-end; gap: 10px; margin: 20px -15px 0; padding: 15px 15px 0; border-top: 1px solid #eee;">
+          <button type="button" class="button-outline" onclick="closeModal('deletePackagingModal')" style="padding: 6px 12px; border-radius: 4px; min-width: 80px;">Cancel</button>
+          <button type="submit" class="update-button" style="padding: 6px 12px; border-radius: 4px; min-width: 80px;">Delete</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 4) Subtract Packaging Modal -->
+  <div id="subtractPackagingModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Subtract Packaging Materials</h2>
+        <span class="close" onclick="closeModal('subtractPackagingModal')">&times;</span>
+      </div>
+      <form method="POST" action="{% url 'used_packaging_create' %}" id="subtractPackagingForm" onsubmit="return handleSubtractPackaging(event);">
+        {% csrf_token %}
+        <div>
+          <label for="subtractPassword">
+            Password<span style="color:red;">*</span>:
+          </label>
+          <input type="password" id="subtractPassword" name="password" required>
+        </div>
+        <div>
+          <label for="id_PackagingRawMaterialBatchCode">
+            Packaging Batch Code<span style="color:red;">*</span>:
+          </label>
+          <select id="id_PackagingRawMaterialBatchCode" name="PackagingRawMaterialBatchCode" required>
+            <option value="">Select Packaging Batch Code</option>
+            {% for material in materials %}
+            <option value="{{ material.id }}" data-date-delivered="{{ material.DateDelivered|date:'Y-m-d' }}">
+              {{ material.PackagingBatchCode }} - {{ material.RawMaterialName }}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label for="id_QuantityUsed">
+            Quantity Used<span style="color:red;">*</span>:
+          </label>
+          <input type="number" id="id_QuantityUsed" name="QuantityUsed" min="1" required>
+        </div>
+        <div>
+          <label>Use Category<span style="color:red;">*</span>:</label>
+          <div style="margin-top: 10px;">
+            <div>
+              <input type="radio" name="UseCategory" value="WBC" id="id_UseCategory_WBC_sub" required>
+              <label for="id_UseCategory_WBC_sub">White Labeled Client</label>
+            </div>
+            <div>
+              <input type="radio" name="UseCategory" value="GGB" id="id_UseCategory_GGB_sub">
+              <label for="id_UseCategory_GGB_sub">Glow Glass Beauty</label>
+            </div>
+            <div>
+              <input type="radio" name="UseCategory" value="Both" id="id_UseCategory_Both_sub">
+              <label for="id_UseCategory_Both_sub">Both</label>
+            </div>
+          </div>
+        </div>
+        <div>
+          <label for="id_DateUsed">
+            Date Used<span style="color:red;">*</span>:
+          </label>
+          <input type="date" id="id_DateUsed" name="DateUsed" required>
+        </div>
+        <!-- Hidden field for change_status -->
+        <input type="hidden" name="change_status" value="Used">
+        <div class="button-container" style="margin-top: 20px;">
+          <button type="button" class="button-outline" onclick="closeModal('subtractPackagingModal')">Discard</button>
+          <button type="submit" class="update-button">Confirm</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 5) Used Packaging History Modal -->
+  <div id="usedPackagingHistoryModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>History of Used Packaging</h2>
+        <span class="close" onclick="closeModal('usedPackagingHistoryModal')">&times;</span>
+      </div>
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr class="table-header">
+              <th colspan="6" style="text-align: left;">
+                Page <span id="usedPackCurrentPage">1</span>/<span id="usedPackTotalPages">1</span>
+                <button class="pageButton" onclick="changeUsedPackagingPage(-1)" id="usedPackPrev">&lt;</button>
+                <button class="pageButton" onclick="changeUsedPackagingPage(1)" id="usedPackNext">&gt;</button>
+              </th>
+            </tr>
+            <tr>
+              <th>Packaging Name</th>
+              <th>Batch Code</th>
+              <th>Quantity Used (pcs)</th>
+              <th>Use Category</th>
+              <th>Date Used</th>
+              <th>Options</th>
+            </tr>
+          </thead>
+          <tbody id="usedPackagingTableBody">
+            {% for used in used_packaging %}
+            <tr data-used-batch-code="{{ used.USEDPackagingBatchCode }}" data-date-used="{{ used.DateUsed|date:'Y-m-d' }}">
+              <td>{{ used.RawMaterialName }}</td>
+              <td>{{ used.PackagingRawMaterialBatchCode.PackagingBatchCode }}</td>
+              <td>{{ used.QuantityUsed }}</td>
+              <td>{{ used.UseCategory }}</td>
+              <td>{{ used.DateUsed|date:"Y-m-d" }}</td>
+              <td>
+                <button class="delete-button" onclick="openDeleteModalUsedPack('{{ used.USEDPackagingBatchCode }}','{{ used.RawMaterialName }}')">Delete</button>
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="6" style="text-align: center; padding: 20px; color: #666;">No used packaging found</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- 6) Update Used Packaging Modal -->
+  <div id="updateUsedPackagingModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Update Used Packaging Entry (Code: <span id="modalUsedPackagingBatchCode"></span>)</h2>
+        <span class="close" onclick="closeModal('updateUsedPackagingModal')">&times;</span>
+      </div>
+      <form method="POST" id="updateUsedPackagingForm" onsubmit="return confirm('Are you sure you want to update this record?');">
+        {% csrf_token %}
+        <div class="form-group">
+          <label for="updateUsedPassword">Password:</label>
+          <input type="password" id="updateUsedPassword" name="password" required>
+        </div>
+        <input type="hidden" name="USEDPackagingBatchCode" id="modalUsedPackagingBatchCodeHidden" value="">
+        <div class="form-group">
+          <label for="updateUsedRawMaterialName">Raw Material Name</label>
+          <input type="text" id="updateUsedRawMaterialName" name="RawMaterialName" readonly>
+        </div>
+        <div class="form-group">
+          <label for="updateQuantityUsed">Quantity Used</label>
+          <input type="number" id="updateQuantityUsed" name="QuantityUsed" min="0">
+        </div>
+        <div class="form-group">
+          <label for="updateUsedUseCategory">Use Category</label>
+          <select id="updateUsedUseCategory" name="UseCategory">
+            <option value="WBC">WBC</option>
+            <option value="GGB">GGB</option>
+            <option value="Both">Both</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="updateUsedDateUsed">Date Used</label>
+          <input type="date" id="updateUsedDateUsed" name="DateUsed">
+        </div>
+        <div class="button-container">
+          <button type="submit" class="update-button">Update</button>
+          <button type="button" class="button-outline" onclick="closeModal('updateUsedPackagingModal')">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 7) Delete Used Packaging Modal -->
+  <div id="deleteUsedPackagingModal" class="modal">
+    <div class="modal-content" style="max-width: 400px; padding: 20px;">
+      <div class="modal-header" style="margin: -20px -20px 20px -20px; padding: 15px 20px; border-bottom: 1px solid #ddd; background: #f8f9fa;">
+        <h2 style="margin: 0; font-size: 18px;">Delete Used Packaging Entry</h2>
+        <span class="close" onclick="closeModal('deleteUsedPackagingModal')">&times;</span>
+      </div>
+      <p id="deleteUsedPackagingMessage" style="margin-bottom: 15px;">Are you sure you want to delete this used packaging entry?</p>
+      <form method="POST" id="deleteUsedPackagingForm" onsubmit="return handleDeleteUsedPackaging(event);">
+        {% csrf_token %}
+        <div style="margin-bottom: 15px;">
+          <label for="deleteUsedPackagingPassword" style="display: block; margin-bottom: 5px; font-weight: normal;">
+            Password<span style="color: red;">*</span>:
+          </label>
+          <input type="password" id="deleteUsedPackagingPassword" name="password" required style="width: 100%; padding: 6px 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box;">
+        </div>
+        <div class="button-container" style="display: flex; justify-content: flex-end; gap: 10px; margin: 20px -15px 0; padding: 15px 15px 0; border-top: 1px solid #eee;">
+          <button type="button" class="button-outline" onclick="closeModal('deleteUsedPackagingModal')" style="padding: 6px 12px; border-radius: 4px; min-width: 80px;">Cancel</button>
+          <button type="submit" class="update-button" style="padding: 6px 12px; border-radius: 4px; min-width: 80px;">Delete</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- JAVASCRIPT -->
+  <script>
+    function openModal(id) {
+      document.getElementById(id).style.display = "flex";
+    }
+    function closeModal(id) {
+      document.getElementById(id).style.display = "none";
+    }
+    function formatDateToISO(dateStr) {
+      if (!dateStr) return "";
+      let parts = dateStr.split(" ");
+      if (parts.length !== 3) return "";
+      let monthAbbr = parts[0].replace(".", "");
+      let day = parts[1].replace(",", "");
+      let year = parts[2];
+      const monthMap = {
+          'Jan': '01', 'Feb': '02', 'Mar': '03', 'Apr': '04',
+          'May': '05', 'Jun': '06', 'Jul': '07', 'Aug': '08',
+          'Sep': '09', 'Oct': '10', 'Nov': '11', 'Dec': '12'
+      };
+      let monthNumber = monthMap[monthAbbr];
+      day = day.padStart(2, '0');
+      return `${year}-${monthNumber}-${day}`;
+    }
+    // Update Ingredient Modal
+    function openUpdateModalIngredient(rawMaterialBatchCode, supplierCode, rawMaterialName, dateDelivered, quantityBought, quantityLeft, useCategory, expirationDate, status, cost) {
+      let rawMaterialRow = document.querySelector(`[data-raw-material-code='${rawMaterialBatchCode}']`);
+      if (!rawMaterialRow) {
+          alert("Error: Raw Material not found.");
+          return;
+      }
+      let pk = rawMaterialRow.getAttribute("data-raw-material-pk");
+      let formattedDateDelivered = formatDateToISO(dateDelivered);
+      let formattedExpirationDate = formatDateToISO(expirationDate);
+      document.getElementById("modalRawMaterialBatchCode").textContent = rawMaterialBatchCode;
+      document.getElementById("modalRawMaterialBatchCodeHidden").value = rawMaterialBatchCode;
+      document.getElementById("modalSupplierCodeHidden").value = supplierCode;
+      document.getElementById("modalRawMaterialName").value = rawMaterialName;
+      document.getElementById("modalDateDelivered").value = formattedDateDelivered;
+      document.getElementById("modalQuantityBought").value = quantityBought;
+      document.getElementById("modalQuantityLeft").value = quantityLeft;
+      // Compute used amount from original data: used = QuantityBought - QuantityLeft
+      var used = parseFloat(quantityBought) - parseFloat(quantityLeft);
+      document.getElementById("modalUsed").value = used;
+      // Set the appropriate radio button for Use Category
+      if (useCategory === "WBC") {
+         document.getElementById("useCategoryWBC").checked = true;
+      } else if (useCategory === "GGB") {
+         document.getElementById("useCategoryGGB").checked = true;
+      } else if (useCategory === "Both") {
+         document.getElementById("useCategoryBoth").checked = true;
+      }
+      document.getElementById("modalExpirationDate").value = formattedExpirationDate;
+      document.getElementById("modalStatus").value = status;
+      document.getElementById("modalCost").value = cost;
+      // Populate supplier dropdown for ingredients
+      fetch('/api/suppliers/ingredients')
+          .then(response => response.json())
+          .then(data => {
+              let supplierSelect = document.getElementById("modalSupplierCode");
+              supplierSelect.innerHTML = '<option value="">Select a Supplier</option>';
+              data.suppliers.forEach(supplier => {
+                  let option = document.createElement("option");
+                  option.value = supplier.SupplierCode;
+                  option.textContent = supplier.SupplierName;
+                  if (supplier.SupplierCode === supplierCode) {
+                      option.selected = true;
+                  }
+                  supplierSelect.appendChild(option);
+              });
+          })
+          .catch(error => console.error('Error fetching suppliers:', error));
+      openModal("updateIngredientModal");
+    }
+    function validateIngredientUpdate() {
+      var qb = parseFloat(document.getElementById("modalQuantityBought").value) || 0;
+      var ql = parseFloat(document.getElementById("modalQuantityLeft").value) || 0;
+      var used = parseFloat(document.getElementById("modalUsed").value) || 0;
+      // Expected: Quantity Left must equal Quantity Bought minus the used amount.
+      if (Math.abs(ql - (qb - used)) > 0.001) {
+        alert("Error: Quantity Left must equal Quantity Bought minus the used quantity (" + used + ").");
+        return false;
+      }
+      return true;
+    }
+    function openDeleteModalIngredient(pk, batchCode, name) {
+      document.getElementById('deleteIngredientMessage').textContent = `Are you sure you want to delete "${name}"?`;
+      document.getElementById('deleteIngredientForm').action = `/ingredients/delete/${pk}/`;
+      openModal('deleteIngredientModal');
+    }
+    function openDeleteModalUsedIngredient(usedBatchCode, name) {
+      document.getElementById('deleteUsedIngredientMessage').textContent = `Are you sure you want to delete the used ingredient entry for "${name}"?`;
+      document.getElementById('deleteUsedIngredientForm').action = `/used-ingredients/delete/${usedBatchCode}/`;
+      openModal('deleteUsedIngredientModal');
+    }
+    // Update Packaging Modal
+    function openUpdateModalPackaging(packagingBatchCode, rawMaterialName, containerSize, dateDelivered, qtyBought, qtyLeft, useCategory, cost, supplierCode) {
+      let packagingRow = document.querySelector(`[data-packaging-code='${packagingBatchCode}']`);
+      if (!packagingRow) {
+          alert("Error: Packaging material not found.");
+          return;
+      }
+      let pk = packagingRow.getAttribute("data-packaging-pk");
+      let form = document.getElementById("updatePackagingForm");
+      form.action = `/packaging/update/${pk}/`;
+      
+      document.getElementById("modalPackagingBatchCode").textContent = packagingBatchCode;
+      document.getElementById("modalPackagingBatchCodeHidden").value = packagingBatchCode;
+      document.getElementById('RawMaterialName').value = rawMaterialName;
+      document.getElementById('ContainerSize').value = containerSize;
+      document.getElementById('DateDelivered').value = dateDelivered;
+      document.getElementById('QuantityBought').value = qtyBought;
+      document.getElementById('QuantityLeft').value = qtyLeft;
+      
+      // Compute used quantity for packaging: used = QuantityBought - QuantityLeft
+      var used = parseFloat(qtyBought) - parseFloat(qtyLeft);
+      document.getElementById("modalUsedPackaging").value = used;
+      
+      // Reset all radio buttons first
+      document.getElementById("packUseCategoryWBC").checked = false;
+      document.getElementById("packUseCategoryGGB").checked = false;
+      document.getElementById("packUseCategoryBoth").checked = false;
+      
+      // Set the correct radio button based on useCategory
+      if (useCategory === "WBC") {
+          document.getElementById("packUseCategoryWBC").checked = true;
+      } else if (useCategory === "GGB") {
+          document.getElementById("packUseCategoryGGB").checked = true;
+      } else if (useCategory === "Both") {
+          document.getElementById("packUseCategoryBoth").checked = true;
+      }
+      
+      document.getElementById('Cost').value = cost;
+      document.getElementById('modalSupplierCodeHidden').value = supplierCode;
+      
+      // Populate supplier dropdown for packaging
+      fetch('/api/suppliers/packaging')
+          .then(response => response.json())
+          .then(data => {
+              let supplierSelect = document.getElementById("modalSupplierCode");
+              supplierSelect.innerHTML = '<option value="">Select a Supplier</option>';
+              data.suppliers.forEach(supplier => {
+                  let option = document.createElement("option");
+                  option.value = supplier.SupplierCode;
+                  option.textContent = supplier.SupplierName;
+                  if (supplier.SupplierCode === supplierCode) {
+                      option.selected = true;
+                  }
+                  supplierSelect.appendChild(option);
+              });
+          })
+          .catch(error => console.error('Error fetching suppliers:', error));
+      
+      openModal("updatePackagingModal");
+    }
+    function validatePackagingUpdate() {
+      const errorContainer = document.getElementById('errorMessageContainer');
+      var qb = parseFloat(document.getElementById("QuantityBought").value) || 0;
+      var ql = parseFloat(document.getElementById("QuantityLeft").value) || 0;
+      var used = parseFloat(document.getElementById("modalUsedPackaging").value) || 0;
+      
+      // Basic validation
+      if (qb < 0) {
+          errorContainer.style.display = 'block';
+          errorContainer.textContent = "Quantity Bought cannot be negative.";
+          return false;
+      }
+      if (ql < 0) {
+          errorContainer.style.display = 'block';
+          errorContainer.textContent = "Quantity Left cannot be negative.";
+          return false;
+      }
+      if (ql > qb) {
+          errorContainer.style.display = 'block';
+          errorContainer.textContent = "Quantity Left cannot be greater than Quantity Bought.";
+          return false;
+      }
+      
+      // Check if the new quantities respect the used amount
+      if (Math.abs(ql - (qb - used)) > 0.001) {
+          errorContainer.style.display = 'block';
+          errorContainer.textContent = "Error: Quantity Left must equal Quantity Bought minus the used quantity (" + used + ").";
+          return false;
+      }
+      
+      // Validate required fields - excluding Status since it's read-only
+      var requiredFields = ['RawMaterialName', 'ContainerSize', 'DateDelivered', 'QuantityBought', 'QuantityLeft', 'Cost'];
+      for (var field of requiredFields) {
+          var value = document.getElementById(field).value.trim();
+          if (!value) {
+              errorContainer.style.display = 'block';
+              errorContainer.textContent = "Please fill in all required fields marked with *";
+              return false;
+          }
+      }
+      
+      // Validate supplier selection
+      var supplierSelect = document.getElementById("modalSupplierCode");
+      if (!supplierSelect.value) {
+          errorContainer.style.display = 'block';
+          errorContainer.textContent = "Please select a supplier.";
+          return false;
+      }
+      
+      // Validate Use Category selection
+      var useCategory = document.querySelector('input[name="UseCategory"]:checked');
+      if (!useCategory) {
+          errorContainer.style.display = 'block';
+          errorContainer.textContent = "Please select a Use Category.";
+          return false;
+      }
+      
+      return true;
+    }
+    function openDeleteModalPackaging(pk, batchCode, name) {
+      document.getElementById('deletePackagingMessage').textContent = `Are you sure you want to delete "${name}"?`;
+      document.getElementById('deletePackagingForm').action = `/packaging/delete/${pk}/`;
+      openModal('deletePackagingModal');
+    }
+    function openDeleteModalUsedPack(pk, name) {
+      document.getElementById('deleteUsedPackagingMessage').textContent = `Are you sure you want to delete the used packaging entry for "${name}"?`;
+      document.getElementById('deleteUsedPackagingForm').action = `/used-packaging/delete/${pk}/`;
+      openModal('deleteUsedPackagingModal');
+    }
+    // Validate subtract packaging modal: Date Used must not be before Date Delivered.
+    function validatePackagingSubtraction() {
+      var dateUsed = document.getElementById("id_DateUsed").value;
+      var select = document.getElementById("id_PackagingRawMaterialBatchCode");
+      var selectedOption = select.options[select.selectedIndex];
+      var dateDelivered = selectedOption.getAttribute("data-date-delivered");
+      if (dateUsed && dateDelivered && dateUsed < dateDelivered) {
+        alert("Date Used cannot be before the Date Delivered (" + dateDelivered + ").");
+        return false;
+      }
+      return true;
+    }
+    window.onclick = function(e) {
+      const modals = ['usedIngredientsHistoryModal','addIngredientModal','subtractIngredientModal','updateIngredientModal','deleteIngredientModal','deleteUsedIngredientModal','addPackagingModal','updatePackagingModal','deletePackagingModal','subtractPackagingModal','usedPackagingHistoryModal','updateUsedPackagingModal','deleteUsedPackagingModal'];
+      modals.forEach(function(id) {
+        const modal = document.getElementById(id);
+        if (e.target === modal) {
+          closeModal(id);
+        }
+      });
+    }
+  
+  const packRowsPerPage = 5;
+  let packCurrentPage = 1;
+  let filteredPackaging = null;
+
+  function paginatePackagingTable() {
+    const allRows = Array.from(document.querySelectorAll('#packagingTableBody tr:not(#noPackagingRow)'));
+    const rowsToPaginate = filteredPackaging === null ? allRows : filteredPackaging;
+
+    const totalPages = Math.ceil(rowsToPaginate.length / packRowsPerPage) || 1;
+    packCurrentPage = Math.min(packCurrentPage, totalPages);
+
+    document.getElementById('packCurrentPage').textContent = packCurrentPage;
+    document.getElementById('packTotalPages').textContent = totalPages;
+
+    // Hide all rows including the "no results" row
+    allRows.forEach(row => row.style.display = 'none');
+    document.getElementById('noPackagingRow').style.display = 'none';
+
+    if (rowsToPaginate.length === 0 && filteredPackaging !== null) {
+      document.getElementById('noPackagingRow').style.display = '';
+      return;
+    }
+
+    const start = (packCurrentPage - 1) * packRowsPerPage;
+    const end = packCurrentPage * packRowsPerPage;
+    rowsToPaginate.slice(start, end).forEach(row => row.style.display = '');
+
+    document.getElementById('packPrev').disabled = packCurrentPage === 1;
+    document.getElementById('packNext').disabled = packCurrentPage === totalPages;
+  }
+
+  function changePackagingPage(direction) {
+    packCurrentPage += direction;
+    paginatePackagingTable();
+  }
+
+  function filterPackagingTable() {
+    const query = document.getElementById('packagingSearchInput').value.toLowerCase().trim();
+    const allRows = Array.from(document.querySelectorAll('#packagingTableBody tr:not(#noPackagingRow)'));
+
+    if (query === '') {
+      filteredPackaging = null;
+    } else {
+      filteredPackaging = allRows.filter(row => {
+        const cells = row.querySelectorAll('td');
+        const type = (cells[0]?.textContent || '').toLowerCase(); // Packaging Type
+        const batch = (cells[1]?.textContent || '').toLowerCase(); // Batch Code
+        return type.includes(query) || batch.includes(query);
+      });
+    }
+
+    packCurrentPage = 1;
+    paginatePackagingTable();
+  }
+
+  // Event listeners
+  document.addEventListener('DOMContentLoaded', paginatePackagingTable);
+
+  document.getElementById('packagingSearchInput').addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      filterPackagingTable();
+    }
+  });
+
+  document.getElementById('packagingSearchIcon').addEventListener('click', filterPackagingTable);
+
+  document.getElementById('packagingFilterMenu').addEventListener('click', () => {
+    alert("Filter panel coming soon...");
+  });
+
+  async function handlePackagingUpdate(event) {
+    event.preventDefault();
+    
+    // Clear any existing error messages
+    const errorContainer = document.getElementById('errorMessageContainer');
+    errorContainer.style.display = 'none';
+    errorContainer.textContent = '';
+    
+    if (!validatePackagingUpdate()) {
+        return false;
+    }
+    
+    const form = event.target;
+    const formData = new FormData(form);
+    
+    try {
+        const response = await fetch(form.action, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': formData.get('csrfmiddlewaretoken')
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (data.status === 'success') {
+            // Show success message
+            errorContainer.style.display = 'block';
+            errorContainer.style.backgroundColor = '#d4edda';
+            errorContainer.style.color = '#155724';
+            errorContainer.style.border = '1px solid #c3e6cb';
+            errorContainer.textContent = data.message;
+            
+            // Close modal and refresh after a short delay
+            setTimeout(() => {
+                closeModal('updatePackagingModal');
+                window.location.reload();
+            }, 1500);
+        } else {
+            // Show error message
+            errorContainer.style.display = 'block';
+            errorContainer.style.backgroundColor = '#f8d7da';
+            errorContainer.style.color = '#721c24';
+            errorContainer.style.border = '1px solid #f5c6cb';
+            
+            if (data.errors) {
+                // Show specific field errors
+                let errorMessage = "Please correct the following errors:\n";
+                const errorList = document.createElement('ul');
+                errorList.style.marginBottom = '0';
+                for (const [field, error] of Object.entries(data.errors)) {
+                    const li = document.createElement('li');
+                    li.textContent = `${field}: ${error}`;
+                    errorList.appendChild(li);
+                }
+                errorContainer.textContent = errorMessage;
+                errorContainer.appendChild(errorList);
+            } else {
+                // Show general error message
+                errorContainer.textContent = data.message || 'An error occurred while updating the packaging material.';
+            }
+        }
+    } catch (error) {
+        // Show error message for network/server errors
+        errorContainer.style.display = 'block';
+        errorContainer.style.backgroundColor = '#f8d7da';
+        errorContainer.style.color = '#721c24';
+        errorContainer.style.border = '1px solid #f5c6cb';
+        errorContainer.textContent = 'An error occurred while updating the packaging material. Please try again.';
+        console.error('Error:', error);
+    }
+    
+    // Scroll to error message if shown
+    if (errorContainer.style.display === 'block') {
+        errorContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+    
+    return false;
+  }
+
+  async function handleSubtractPackaging(event) {
+    event.preventDefault();
+    console.log('Form submission started');
+    
+    const form = event.target;
+    const formData = new FormData(form);
+    const errorContainer = document.getElementById('mainErrorContainer');
+    const errorTitle = document.getElementById('errorTitle');
+    const errorContent = document.getElementById('errorContent');
+    
+    // Basic validation
+    const batchCode = formData.get('PackagingRawMaterialBatchCode');
+    const quantityUsed = formData.get('QuantityUsed');
+    const dateUsed = formData.get('DateUsed');
+    const useCategory = formData.get('UseCategory');
+    const password = formData.get('password');
+
+    if (!batchCode || !quantityUsed || !dateUsed || !useCategory || !password) {
+      errorContainer.style.display = 'block';
+      errorContainer.style.backgroundColor = '#f8d7da';
+      errorContainer.style.color = '#721c24';
+      errorContainer.style.border = '1px solid #f5c6cb';
+      errorTitle.textContent = 'Validation Error';
+      errorContent.textContent = 'Please fill in all required fields.';
+      errorContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return false;
+    }
+
+    try {
+      console.log('Sending form data:', Object.fromEntries(formData));
+      
+      const response = await fetch(form.action, {
+        method: 'POST',
+        body: formData,
+        headers: {
+          'X-CSRFToken': formData.get('csrfmiddlewaretoken')
+        }
+      });
+      
+      const data = await response.json();
+      console.log('Server response:', data);
+      
+      if (response.ok) {
+        // Success case
+        window.location.reload();
+        return false;
+      } else {
+        // Error case
+        errorContainer.style.display = 'block';
+        errorContainer.style.backgroundColor = '#f8d7da';
+        errorContainer.style.color = '#721c24';
+        errorContainer.style.border = '1px solid #f5c6cb';
+        
+        errorTitle.textContent = 'Error Creating Used Packaging Entry';
+        
+        if (data.errors) {
+          const errorList = document.createElement('ul');
+          errorList.style.marginBottom = '0';
+          errorList.style.paddingLeft = '20px';
+          
+          for (const [field, error] of Object.entries(data.errors)) {
+            const li = document.createElement('li');
+            li.textContent = `${field}: ${error}`;
+            errorList.appendChild(li);
+          }
+          
+          errorContent.innerHTML = '';
+          errorContent.appendChild(errorList);
+        } else {
+          errorContent.textContent = data.message || 'An error occurred while creating the used packaging record.';
+        }
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      errorContainer.style.display = 'block';
+      errorContainer.style.backgroundColor = '#f8d7da';
+      errorContainer.style.color = '#721c24';
+      errorContainer.style.border = '1px solid #f5c6cb';
+      errorTitle.textContent = 'System Error';
+      errorContent.textContent = 'An error occurred while processing your request. Please try again.';
+    }
+    
+    // Scroll to error message if shown
+    if (errorContainer.style.display === 'block') {
+      errorContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+    
+    return false;
+  }
+
+  function validatePackagingSubtraction() {
+    var dateUsed = document.getElementById("id_DateUsed").value;
+    var select = document.getElementById("id_PackagingRawMaterialBatchCode");
+    var selectedOption = select.options[select.selectedIndex];
+    var dateDelivered = selectedOption.getAttribute("data-date-delivered");
+    
+    const errorContainer = document.getElementById('mainErrorContainer');
+    const errorTitle = document.getElementById('errorTitle');
+    const errorContent = document.getElementById('errorContent');
+    
+    if (!selectedOption.value) {
+      errorContainer.style.display = 'block';
+      errorContainer.style.backgroundColor = '#f8d7da';
+      errorContainer.style.color = '#721c24';
+      errorContainer.style.border = '1px solid #f5c6cb';
+      errorTitle.textContent = 'Validation Error';
+      errorContent.textContent = 'Please select a packaging batch code.';
+      errorContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      closeModal('subtractPackagingModal');
+      return false;
+    }
+    
+    if (dateUsed && dateDelivered && dateUsed < dateDelivered) {
+      errorContainer.style.display = 'block';
+      errorContainer.style.backgroundColor = '#f8d7da';
+      errorContainer.style.color = '#721c24';
+      errorContainer.style.border = '1px solid #f5c6cb';
+      errorTitle.textContent = 'Validation Error';
+      errorContent.textContent = `Date Used cannot be before the Date Delivered (${dateDelivered}).`;
+      errorContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      closeModal('subtractPackagingModal');
+      return false;
+    }
+    
+    return true;
+  }
+
+  async function handleDeleteUsedPackaging(event) {
+    event.preventDefault();
+    
+    const form = event.target;
+    const formData = new FormData(form);
+    const errorContainer = document.getElementById('mainErrorContainer');
+    const errorTitle = document.getElementById('errorTitle');
+    const errorContent = document.getElementById('errorContent');
+    
+    try {
+      const response = await fetch(form.action, {
+        method: 'POST',
+        body: formData,
+        headers: {
+          'X-CSRFToken': formData.get('csrfmiddlewaretoken')
+        }
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok) {
+        // Success case - reload the page to show updated quantities
+        window.location.reload();
+        return false;
+      } else {
+        // Error case
+        errorContainer.style.display = 'block';
+        errorContainer.style.backgroundColor = '#f8d7da';
+        errorContainer.style.color = '#721c24';
+        errorContainer.style.border = '1px solid #f5c6cb';
+        
+        errorTitle.textContent = 'Error Deleting Used Packaging Entry';
+        errorContent.textContent = data.message || 'An error occurred while deleting the used packaging record.';
+        
+        // Close the modal
+        closeModal('deleteUsedPackagingModal');
+        
+        // Scroll to error message
+        errorContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      errorContainer.style.display = 'block';
+      errorContainer.style.backgroundColor = '#f8d7da';
+      errorContainer.style.color = '#721c24';
+      errorContainer.style.border = '1px solid #f5c6cb';
+      errorTitle.textContent = 'System Error';
+      errorContent.textContent = 'An error occurred while processing your request. Please try again.';
+      
+      // Close the modal
+      closeModal('deleteUsedPackagingModal');
+      
+      // Scroll to error message
+      errorContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+    
+    return false;
+  }
+
+  const usedPackRowsPerPage = 5;
+  let usedPackCurrentPage = 1;
+
+  function paginateUsedPackagingTable() {
+    const allRows = Array.from(document.querySelectorAll('#usedPackagingTableBody tr'));
+    const totalPages = Math.ceil(allRows.length / usedPackRowsPerPage) || 1;
+    usedPackCurrentPage = Math.min(usedPackCurrentPage, totalPages);
+
+    document.getElementById('usedPackCurrentPage').textContent = usedPackCurrentPage;
+    document.getElementById('usedPackTotalPages').textContent = totalPages;
+
+    // Hide all rows first
+    allRows.forEach(row => row.style.display = 'none');
+
+    const start = (usedPackCurrentPage - 1) * usedPackRowsPerPage;
+    const end = usedPackCurrentPage * usedPackRowsPerPage;
+    allRows.slice(start, end).forEach(row => row.style.display = '');
+
+    document.getElementById('usedPackPrev').disabled = usedPackCurrentPage === 1;
+    document.getElementById('usedPackNext').disabled = usedPackCurrentPage === totalPages;
+  }
+
+  function changeUsedPackagingPage(direction) {
+    usedPackCurrentPage += direction;
+    paginateUsedPackagingTable();
+  }
+
+  // Add event listener for used packaging history modal pagination
+  document.addEventListener('DOMContentLoaded', () => {
+    paginateUsedPackagingTable();
+  });
+</script>
+
+</body>
+</html>

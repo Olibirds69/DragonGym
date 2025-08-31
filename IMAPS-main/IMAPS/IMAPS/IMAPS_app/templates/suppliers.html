@@ -1,0 +1,848 @@
+<!DOCTYPE html>
+<html lang="en">
+{% load static %}
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>Suppliers Inventory</title>
+  <link rel="stylesheet" href="{% static 'IMAPS_app/css/styles.css' %}">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+<style>
+  /* Form styling */
+  .form-group {
+    margin-bottom: 15px;
+  }
+
+  .form-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 500;
+  }
+
+  .form-group input[type="text"],
+  .form-group input[type="email"],
+  .form-group input[type="tel"],
+  .form-group input[type="password"],
+
+
+  /* Radio button styling */
+  .radio-group {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    margin-top: 5px;
+  }
+
+  .radio-option {
+    display: flex;
+    align-items: center;
+    margin-bottom: 5px;
+  }
+
+  .radio-option input[type="radio"] {
+    width: 16px;
+    height: 16px;
+    margin: 0;
+    cursor: pointer;
+  }
+
+  .radio-option label {
+    cursor: pointer;
+    padding-left: 6px;
+    font-size: 14px;
+    margin-bottom: 0;
+    font-weight: normal;
+  }
+
+  /* Required field asterisk */
+  .required-asterisk {
+    color: red;
+    margin-left: 2px;
+  }
+
+  /* Form group with radio buttons */
+  .form-group:has(.radio-group) {
+    margin-bottom: 10px;
+  }
+
+  /* Alert messages */
+  .alert {
+    background-color: #f8d7da;
+    color: #721c24;
+    padding: 10px;
+    margin-bottom: 10px;
+    border: 1px solid #f5c6cb;
+    border-radius: 4px;
+  }
+</style>
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="logo">
+      <img src="{% static 'IMAPS_app/images/logo.png' %}" alt="Glow Glass Logo">
+    </div>
+    <ul class="nav-menu">
+      <li class="nav-item">
+        <a href="{% url 'packaging_list' %}">
+          <span class="icon">📦</span>
+          <span class="text">Packaging Materials</span>
+        </a>
+      </li>
+      <li class="nav-item">
+        <a href="{% url 'ingredients_list' %}">
+          <span class="icon">🌿</span>
+          <span class="text">Ingredients</span>
+        </a>
+      </li>
+      <li class="nav-item active">
+        <a href="{% url 'suppliers_list' %}">
+          <span class="icon">🏭</span>
+          <span class="text">Suppliers</span>
+        </a>
+      </li>
+      <li class="nav-item">
+        <a href="{% url 'report_summary' %}">
+          <span class="icon">📊</span>
+          <span class="text">Generate Report</span>
+        </a>
+      </li>
+    </ul>
+  </div>
+
+  <!-- Main Content -->
+  <div class="main-content">
+    <h1>Suppliers Inventory</h1>
+
+    <!-- Error Messages Section -->
+    {% if messages %}
+    <div class="messages">
+      {% for message in messages %}
+        <div class="alert {% if message.tags %}alert-{{ message.tags }}{% endif %}" role="alert">
+          {{ message }}
+          <button type="button" class="close-alert" onclick="this.parentElement.style.display='none'">&times;</button>
+        </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="button-container">
+      <button class="button-outline" onclick="openModal('addSupplierModal')">+ Add Supplier</button>
+      <button class="import-button">Import Data</button>
+    </div>
+
+    <!-- Add styles for messages -->
+    <style>
+      .messages {
+        margin-bottom: 20px;
+      }
+      
+      .alert {
+        padding: 12px 20px;
+        margin-bottom: 10px;
+        border: 1px solid transparent;
+        border-radius: 4px;
+        position: relative;
+      }
+      
+      .alert-success {
+        color: #155724;
+        background-color: #d4edda;
+        border-color: #c3e6cb;
+      }
+      
+      .alert-error {
+        color: #721c24;
+        background-color: #f8d7da;
+        border-color: #f5c6cb;
+      }
+      
+      .alert-warning {
+        color: #856404;
+        background-color: #fff3cd;
+        border-color: #ffeeba;
+      }
+      
+      .alert-info {
+        color: #0c5460;
+        background-color: #d1ecf1;
+        border-color: #bee5eb;
+      }
+      
+      .close-alert {
+        position: absolute;
+        right: 10px;
+        top: 50%;
+        transform: translateY(-50%);
+        background: none;
+        border: none;
+        font-size: 20px;
+        cursor: pointer;
+        color: inherit;
+        padding: 0 5px;
+      }
+      
+      .close-alert:hover {
+        opacity: 0.7;
+      }
+    </style>
+
+    <!-- Add JavaScript for auto-hiding messages -->
+    <script>
+      // Auto-hide messages after 5 seconds
+      document.addEventListener('DOMContentLoaded', function() {
+        setTimeout(function() {
+          const messages = document.querySelectorAll('.alert');
+          messages.forEach(function(message) {
+            message.style.display = 'none';
+          });
+        }, 5000);
+      });
+    </script>
+
+    <!-- Table -->
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <!-- Pagination on the left -->
+            <th class="pagination" colspan="4" style="text-align: left;">
+              Page <span id="supCurrentPage">1</span>/<span id="supTotalPages">1</span>
+              <button class="pageButton" onclick="changeSupplierPage(-1)" id="supPrev">&lt;</button>
+              <button class="pageButton" onclick="changeSupplierPage(1)" id="supNext">&gt;</button>
+            </th>
+          
+            <!-- Search bar on the right -->
+            <th class="search-bar-container" colspan="4" style="text-align: right;">
+              <div class="search-bar" style="display: inline-flex; align-items: center;">
+                <!-- Search icon (acts as submit) -->
+                <i class="fa-solid fa-magnifying-glass search-icon"
+                   id="supplierSearchIcon"
+                   style="cursor: pointer; margin-right: 6px;"></i>
+          
+                <!-- Search input -->
+                <input type="text"
+                       id="supplierSearchInput"
+                       class="search-input"
+                       placeholder="Search Suppliers..."
+                       style="padding: 4px 8px; font-size: 14px;">
+          
+                <!-- Hamburger menu for future filters -->
+                <button class="menu-button"
+                        id="supplierFilterMenu"
+                        style="background: none; border: none; margin-left: 8px; cursor: pointer;">
+                  <svg viewBox="0 0 24 24" width="20" height="20">
+                    <path d="M3 12h18M3 6h18M3 18h18"
+                          stroke="#555"
+                          stroke-width="2"
+                          stroke-linecap="round"/>
+                  </svg>
+                </button>
+              </div>
+            </th>
+          </tr>
+          <tr>
+            <th>Supplier Code</th>
+            <th>Supplier Name</th>
+            <th>Category</th>
+            <th>Point Person</th>
+            <th>Contact Number</th>
+            <th>Email Address</th>
+            <th>Social Media</th>
+            <th>Options</th>
+          </tr>
+        </thead>
+        <tbody id="supplierTableBody">
+          {% for sup in suppliers %}
+          <tr>
+            <td>{{ sup.SupplierCode }}</td>
+            <td>{{ sup.SupplierName }}</td>
+            <td>{{ sup.Category }}</td>
+            <td>{{ sup.PointPerson }}</td>
+            {# Contact Number #}
+            <td class="multi-cell">
+              {{ sup.contact_list.0 }}
+              {% if sup.contact_list|length > 1 %}
+                <div class="dropdown-wrapper">
+                  <span class="toggle-dropdown">▼</span>
+                  <ul class="dropdown-list">
+                    {% for num in sup.contact_list|slice:"1:" %}
+                      <li>{{ num }}</li>
+                    {% endfor %}
+                  </ul>
+                </div>
+              {% endif %}
+            </td>
+            
+            {# Email Address #}
+            <td class="multi-cell">
+              {{ sup.email_list.0 }}
+              {% if sup.email_list|length > 1 %}
+                <div class="dropdown-wrapper">
+                  <span class="toggle-dropdown">▼</span>
+                  <ul class="dropdown-list">
+                    {% for email in sup.email_list|slice:"1:" %}
+                      <li>{{ email }}</li>
+                    {% endfor %}
+                  </ul>
+                </div>
+              {% endif %}
+            </td>
+            
+            {# Social Media #}
+            <td class="multi-cell">
+              {% if sup.sm_list.0 %}
+                <a href="{{ sup.sm_list.0 }}" target="_blank" rel="noopener noreferrer">{{ sup.sm_list.0 }}</a>
+                {% if sup.sm_list|length > 1 %}
+                  <div class="dropdown-wrapper">
+                    <span class="toggle-dropdown">▼</span>
+                    <ul class="dropdown-list">
+                      {% for sm in sup.sm_list|slice:"1:" %}
+                        {% if sm %}
+                          <li><a href="{{ sm }}" target="_blank" rel="noopener noreferrer">{{ sm }}</a></li>
+                        {% endif %}
+                      {% endfor %}
+                    </ul>
+                  </div>
+                {% endif %}
+              {% endif %}
+            </td>
+            
+            <td>
+              <button class="update-button" 
+                onclick="openUpdateModalSupplier(
+                  '{{ sup.SupplierCode }}',
+                  '{{ sup.SupplierCode }}',
+                  '{{ sup.SupplierName }}',
+                  '{{ sup.Category }}',
+                  '{{ sup.SocialMedia }}',
+                  '{{ sup.EmailAddress }}',
+                  '{{ sup.ContactNumber }}',
+                  '{{ sup.PointPerson }}'
+                )">Update</button>
+              <button class="delete-button" onclick="openDeleteModalSupplier('{{ sup.SupplierCode }}','{{ sup.SupplierName }}')">Delete</button>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="8">No Suppliers Found.</td>
+          </tr>
+          {% endfor %}
+          <tr id="noResultsRow" style="display: none;">
+            <td colspan="8" style="text-align: center; color: gray;">No matching suppliers found.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ADD SUPPLIER MODAL -->
+<div id="addSupplierModal" class="modal">
+    <div class="modal-content" style="max-width: 400px; padding: 20px;">
+      <div class="modal-header" style="margin: -20px -20px 20px -20px; padding: 15px 20px; border-bottom: 1px solid #ddd; background: #f8f9fa;">
+        <h2 style="margin: 0; font-size: 18px;">Add Supplier</h2>
+        <span class="close" onclick="closeModal('addSupplierModal')">&times;</span>
+      </div>
+      <form method="POST" action="{% url 'supplier_create' %}" id="createSupplierForm" class="form-vertical">
+        {% csrf_token %}
+        
+        <!-- Supplier Code -->
+        <div style="margin-bottom: 15px;">
+          <label for="id_SupplierCode" style="display: block; margin-bottom: 5px; font-weight: normal;">
+            Supplier Code<span style="color: red;">*</span>:
+          </label>
+          <input type="text" name="SupplierCode" id="id_SupplierCode" required style="width: 100%; padding: 6px 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box;">
+        </div>
+
+        <div style="margin-bottom: 15px;">
+          <label for="id_SupplierName" style="display: block; margin-bottom: 5px; font-weight: normal;">
+            Supplier Name<span style="color: red;">*</span>:
+          </label>
+          <input type="text" name="SupplierName" id="id_SupplierName" required style="width: 100%; padding: 6px 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box;">
+        </div>
+
+        <div style="margin-bottom: 15px;">
+          <label style="display: block; margin-bottom: 5px; font-weight: normal;">Use Category<span style="color: red;">*</span>:</label>
+          <div style="margin-top: 10px;">
+            <div style="margin-bottom: 8px;">
+              <input type="radio" name="Category" value="Ingredients" id="id_Category_ING" required style="margin-right: 8px;">
+              <label for="id_Category_ING" style="display: inline; margin-bottom: 0;">Ingredients</label>
+            </div>
+            <div style="margin-bottom: 8px;">
+              <input type="radio" name="Category" value="Packaging" id="id_Category_PCK" style="margin-right: 8px;">
+              <label for="id_Category_PCK" style="display: inline; margin-bottom: 0;">Packaging</label>
+            </div>
+            <div style="margin-bottom: 8px;">
+              <input type="radio" name="Category" value="Both" id="id_Category_Both" style="margin-right: 8px;">
+              <label for="id_Category_Both" style="display: inline; margin-bottom: 0;">Both</label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Point Person -->
+        <div style="margin-bottom: 15px;">
+          <label for="id_PointPerson" style="display: block; margin-bottom: 5px; font-weight: normal;">
+            Point Person:
+          </label>
+          <input type="text" name="PointPerson" id="id_PointPerson" style="width: 100%; padding: 6px 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box;">
+        </div>
+
+        <!-- Contact Numbers -->
+        <div class="multi-field" style="margin-bottom: 15px;">
+          <label style="display: block; margin-bottom: 5px; font-weight: normal;">
+            Contact Number:
+          </label>
+          <div class="fields-wrap">
+            <div class="field-row" style="display: flex; gap: 8px; margin-bottom: 8px;">
+              <input type="text" name="ContactNumber[]" pattern="[0-9]+" oninput="this.value = this.value.replace(/[^0-9]/g, '')" style="flex: 1; padding: 6px 8px; border: 1px solid #ddd; border-radius: 4px;">
+              <button type="button" class="add-btn" data-field-name="ContactNumber" style="padding: 6px 12px; border: 1px solid #ddd; border-radius: 4px; background: white;">+</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Email Addresses -->
+        <div class="multi-field" style="margin-bottom: 15px;">
+          <label style="display: block; margin-bottom: 5px; font-weight: normal;">
+            Email Address:
+          </label>
+          <div class="fields-wrap">
+            <div class="field-row" style="display: flex; gap: 8px; margin-bottom: 8px;">
+              <input type="email" name="EmailAddress[]" pattern="[a-z0-9._%+-]+@[a-z0-9.-]+\.com$" style="flex: 1; padding: 6px 8px; border: 1px solid #ddd; border-radius: 4px;">
+              <button type="button" class="add-btn" data-field-name="EmailAddress" style="padding: 6px 12px; border: 1px solid #ddd; border-radius: 4px; background: white;">+</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Social Media -->
+        <div class="multi-field" style="margin-bottom: 15px;">
+          <label style="display: block; margin-bottom: 5px; font-weight: normal;">
+            Social Media:
+          </label>
+          <div class="fields-wrap">
+            <div class="field-row" style="display: flex; gap: 8px; margin-bottom: 8px;">
+              <input type="url" name="SocialMedia[]" pattern="https?://.+" placeholder="https://" style="flex: 1; padding: 6px 8px; border: 1px solid #ddd; border-radius: 4px;">
+              <button type="button" class="add-btn" data-field-name="SocialMedia" style="padding: 6px 12px; border: 1px solid #ddd; border-radius: 4px; background: white;">+</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="button-container" style="display: flex; justify-content: flex-end; gap: 10px; margin: 20px -15px 0; padding: 15px 15px 0; border-top: 1px solid #eee;">
+          <button type="button" class="button-outline" onclick="clearAddSupplierForm(); closeModal('addSupplierModal')" style="padding: 6px 12px; border-radius: 4px; min-width: 80px;">Discard</button>
+          <button type="submit" class="update-button" style="padding: 6px 12px; border-radius: 4px; min-width: 80px;">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- SUPPLIER UPDATE MODAL -->
+<div id="updateSupplierModal" class="modal">
+  <div class="modal-content" style="max-width: 400px; padding: 20px;">
+    <div class="modal-header" style="margin: -20px -20px 20px -20px; padding: 15px 20px; border-bottom: 1px solid #ddd; background: #f8f9fa;">
+      <h2 style="margin: 0; font-size: 18px;">Update Supplier</h2>
+      <span class="close" onclick="closeModal('updateSupplierModal')">&times;</span>
+    </div>
+    <form method="POST" id="updateSupplierForm" class="form-vertical">
+      {% csrf_token %}
+      
+      <!-- Supplier Code (read-only) -->
+      <div style="margin-bottom: 15px;">
+        <label for="modalSupplierCode" style="display: block; margin-bottom: 5px; font-weight: normal;">
+          Supplier Code:
+        </label>
+        <input type="text" id="modalSupplierCode" readonly style="width: 100%; padding: 6px 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; background-color: #f5f5f5;">
+        <input type="hidden" name="SupplierCode" id="modalSupplierCodeHidden">
+      </div>
+
+      <div style="margin-bottom: 15px;">
+        <label for="updatePassword" style="display: block; margin-bottom: 5px; font-weight: normal;">
+          Password<span style="color: red;">*</span>:
+        </label>
+        <input type="password" id="updatePassword" name="password" required style="width: 100%; padding: 6px 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box;">
+      </div>
+      <div style="margin-bottom: 15px;">
+        <label for="modalSupplierName" style="display: block; margin-bottom: 5px; font-weight: normal;">
+          Supplier Name<span style="color: red;">*</span>:
+        </label>
+        <input type="text" name="SupplierName" id="modalSupplierName" required style="width: 100%; padding: 6px 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box;">
+      </div>
+
+      <!-- Category in Update Form -->
+      <div style="margin-bottom: 15px;">
+        <label style="display: block; margin-bottom: 5px; font-weight: normal;">Use Category<span style="color: red;">*</span>:</label>
+        <div style="margin-top: 10px;">
+          <div style="margin-bottom: 8px;">
+            <input type="radio" name="Category" value="Ingredients" id="updateCategory_ING" required style="margin-right: 1px;">
+            <label for="updateCategory_ING" style="display: inline; margin-bottom: 0;">Ingredients</label>
+          </div>
+          <div style="margin-bottom: 8px;">
+            <input type="radio" name="Category" value="Packaging" id="updateCategory_PCK" style="margin-right: 1px;">
+            <label for="updateCategory_PCK" style="display: inline; margin-bottom: 0;">Packaging</label>
+          </div>
+          <div style="margin-bottom: 8px;">
+            <input type="radio" name="Category" value="Both" id="updateCategory_Both" style="margin-right: 1px;">
+            <label for="updateCategory_Both" style="display: inline; margin-bottom: 0;">Both</label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Point Person -->
+      <div style="margin-bottom: 15px;">
+        <label for="modalPointPerson" style="display: block; margin-bottom: 5px; font-weight: normal;">
+          Point Person<span style="color: red;">*</span>:
+        </label>
+        <input type="text" name="PointPerson" id="modalPointPerson" required style="width: 100%; padding: 6px 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box;">
+      </div>
+
+      <!-- Contact Numbers -->
+      <div class="multi-field" style="margin-bottom: 15px;">
+        <label style="display: block; margin-bottom: 5px; font-weight: normal;">
+          Contact Number<span style="color: red;">*</span>:
+        </label>
+        <div class="fields-wrap" id="updateContactContainer">
+          <div class="field-row" style="display: flex; gap: 8px; margin-bottom: 8px;">
+            <input type="text" name="ContactNumber[]" required pattern="[0-9]+" oninput="this.value = this.value.replace(/[^0-9]/g, '')" style="flex: 1; padding: 6px 8px; border: 1px solid #ddd; border-radius: 4px;">
+            <button type="button" class="add-btn" data-field-name="ContactNumber" style="padding: 6px 12px; border: 1px solid #ddd; border-radius: 4px; background: white;">+</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Email Addresses -->
+      <div class="multi-field" style="margin-bottom: 15px;">
+        <label style="display: block; margin-bottom: 5px; font-weight: normal;">
+          Email Address<span style="color: red;">*</span>:
+        </label>
+        <div class="fields-wrap" id="updateEmailContainer">
+          <div class="field-row" style="display: flex; gap: 8px; margin-bottom: 8px;">
+            <input type="email" name="EmailAddress[]" required pattern="[a-z0-9._%+-]+@[a-z0-9.-]+\.com$" style="flex: 1; padding: 6px 8px; border: 1px solid #ddd; border-radius: 4px;">
+            <button type="button" class="add-btn" data-field-name="EmailAddress" style="padding: 6px 12px; border: 1px solid #ddd; border-radius: 4px; background: white;">+</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Social Media -->
+      <div class="multi-field" style="margin-bottom: 15px;">
+        <label style="display: block; margin-bottom: 5px; font-weight: normal;">
+          Social Media:
+        </label>
+        <div class="fields-wrap" id="updateSocialMediaContainer">
+          <div class="field-row" style="display: flex; gap: 8px; margin-bottom: 8px;">
+            <input type="url" name="SocialMedia[]" pattern="https?://.+" placeholder="https://" style="flex: 1; padding: 6px 8px; border: 1px solid #ddd; border-radius: 4px;">
+            <button type="button" class="add-btn" data-field-name="SocialMedia" style="padding: 6px 12px; border: 1px solid #ddd; border-radius: 4px; background: white;">+</button>
+          </div>
+        </div>
+      </div>
+      
+      <div class="button-container" style="display: flex; justify-content: flex-start; gap: 10px; margin: 20px -15px 0; padding: 15px 15px 0; border-top: 1px solid #eee;">
+        <button type="button" class="button-outline" onclick="clearUpdateSupplierForm(); closeModal('updateSupplierModal')" style="padding: 6px 12px; border-radius: 4px; min-width: 80px;">Discard</button>
+        <button type="submit" class="update-button" style="padding: 6px 12px; border-radius: 4px; min-width: 80px;">Save</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+
+  <!-- DELETE SUPPLIER MODAL -->
+  <div id="deleteSupplierModal" class="modal">
+    <div class="modal-content" style="max-width: 400px; padding: 20px;">
+      <div class="modal-header" style="margin: -20px -20px 20px -20px; padding: 15px 20px; border-bottom: 1px solid #ddd; background: #f8f9fa;">
+        <h2 style="margin: 0; font-size: 18px;">Delete Supplier</h2>
+        <span class="close" onclick="closeModal('deleteSupplierModal')">&times;</span>
+      </div>
+      <p id="deleteSupplierMessage" style="margin-bottom: 15px;">Are you sure you want to delete this supplier?</p>
+      <form method="POST" id="deleteSupplierForm">
+        {% csrf_token %}
+        <div style="margin-bottom: 15px;">
+          <label for="deletePassword" style="display: block; margin-bottom: 5px; font-weight: normal;">Password<span style="color: red;">*</span>:</label>
+          <input type="password" id="deletePassword" name="password" required style="width: 100%; padding: 6px 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box;">
+        </div>
+        <div class="button-container" style="display: flex; justify-content: flex-end; gap: 10px; margin: 20px -15px 0; padding: 15px 15px 0; border-top: 1px solid #eee;">
+          <button type="button" class="button-outline" onclick="closeModal('deleteSupplierModal')" style="padding: 6px 12px; border-radius: 4px; min-width: 80px;">Cancel</button>
+          <button type="submit" class="update-button" style="padding: 6px 12px; border-radius: 4px; min-width: 80px;">Delete</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- JavaScript for Suppliers Modals -->
+  <script>
+    function openModal(id) {
+      document.getElementById(id).style.display = "flex";
+    }
+    function closeModal(id) {
+      document.getElementById(id).style.display = "none";
+      // Clear form data when closing modal
+      if (id === 'addSupplierModal') {
+        clearAddSupplierForm();
+      } else if (id === 'updateSupplierModal') {
+        clearUpdateSupplierForm();
+      } else if (id === 'deleteSupplierModal') {
+        document.getElementById('deletePassword').value = '';
+      }
+    }
+
+    function openUpdateModalSupplier(pk, supplierCode, supplierName, category, socialMedia, emailAddress, contactNumber, pointPerson) {
+      // Set the form action
+      const form = document.getElementById('updateSupplierForm');
+      form.action = `/suppliers/update/${pk}/`;
+      
+      // Update supplier code fields
+      document.getElementById('modalSupplierCode').value = supplierCode;
+      document.getElementById('modalSupplierCodeHidden').value = supplierCode;
+      
+      // Clear password for security
+      document.getElementById('updatePassword').value = '';
+      
+      // Set supplier name
+      document.getElementById('modalSupplierName').value = supplierName;
+      
+      // Set the appropriate category radio
+      document.getElementById('updateCategory_ING').checked = (category === 'Ingredients');
+      document.getElementById('updateCategory_PCK').checked = (category === 'Packaging');
+      document.getElementById('updateCategory_Both').checked = (category === 'Both');
+      
+      // Handle multiple fields
+      // Point Person
+      document.getElementById('modalPointPerson').value = pointPerson.split(';')[0] || '';
+      
+      // Contact Numbers
+      const contactContainer = document.getElementById('updateContactContainer');
+      contactContainer.innerHTML = ''; // Clear existing
+      const contacts = contactNumber.split(';').map(c => c.trim()).filter(c => c);
+      contacts.forEach((contact, index) => {
+        const row = document.createElement('div');
+        row.className = 'field-row';
+        row.style = 'display: flex; gap: 8px; margin-bottom: 8px;';
+        row.innerHTML = `
+          <input type="text" name="ContactNumber[]" required pattern="[0-9]+" oninput="this.value = this.value.replace(/[^0-9]/g, '')" value="${contact}" style="flex: 1; padding: 6px 8px; border: 1px solid #ddd; border-radius: 4px;">
+          ${index === contacts.length - 1 ? '<button type="button" class="add-btn" data-field-name="ContactNumber" style="padding: 6px 12px; border: 1px solid #ddd; border-radius: 4px; background: white;">+</button>' : ''}
+        `;
+        contactContainer.appendChild(row);
+      });
+      
+      // Email Addresses
+      const emailContainer = document.getElementById('updateEmailContainer');
+      emailContainer.innerHTML = ''; // Clear existing
+      const emails = emailAddress.split(';').map(e => e.trim()).filter(e => e);
+      emails.forEach((email, index) => {
+        const row = document.createElement('div');
+        row.className = 'field-row';
+        row.style = 'display: flex; gap: 8px; margin-bottom: 8px;';
+        row.innerHTML = `
+          <input type="email" name="EmailAddress[]" required pattern="[a-z0-9._%+-]+@[a-z0-9.-]+\.com$" value="${email}" style="flex: 1; padding: 6px 8px; border: 1px solid #ddd; border-radius: 4px;">
+          ${index === emails.length - 1 ? '<button type="button" class="add-btn" data-field-name="EmailAddress" style="padding: 6px 12px; border: 1px solid #ddd; border-radius: 4px; background: white;">+</button>' : ''}
+        `;
+        emailContainer.appendChild(row);
+      });
+      
+      // Social Media
+      const socialContainer = document.getElementById('updateSocialMediaContainer');
+      socialContainer.innerHTML = ''; // Clear existing
+      const socials = socialMedia.split(';').map(s => s.trim()).filter(s => s);
+      socials.forEach((social, index) => {
+        const row = document.createElement('div');
+        row.className = 'field-row';
+        row.style = 'display: flex; gap: 8px; margin-bottom: 8px;';
+        row.innerHTML = `
+          <input type="url" name="SocialMedia[]" pattern="https?://.+" placeholder="https://" value="${social}" style="flex: 1; padding: 6px 8px; border: 1px solid #ddd; border-radius: 4px;">
+          ${index === socials.length - 1 ? '<button type="button" class="add-btn" data-field-name="SocialMedia" style="padding: 6px 12px; border: 1px solid #ddd; border-radius: 4px; background: white;">+</button>' : ''}
+        `;
+        socialContainer.appendChild(row);
+      });
+      
+      // Open the modal
+      openModal('updateSupplierModal');
+    }
+
+    function openDeleteModalSupplier(pk, name) {
+      document.getElementById('deleteSupplierMessage').textContent =
+        `Are you sure you want to delete "${name}"?`;
+      document.getElementById('deleteSupplierForm').action = `/suppliers/delete/${pk}/`;
+      openModal('deleteSupplierModal');
+    }
+
+    window.onclick = function(e) {
+      const modals = ['addSupplierModal','updateSupplierModal','deleteSupplierModal'];
+      modals.forEach(function(id) {
+        const modal = document.getElementById(id);
+        if (e.target === modal) {
+          closeModal(id);
+        }
+      });
+    }
+  const supRowsPerPage = 5;
+  let supCurrentPage = 1;
+  let filteredRows = null;
+
+  function paginateSupplierTable() {
+    const allRows = Array.from(document.querySelectorAll('#supplierTableBody tr:not(#noResultsRow)'));
+
+    const rowsToPaginate = filteredRows === null ? allRows : filteredRows;
+
+    const totalPages = Math.ceil(rowsToPaginate.length / supRowsPerPage) || 1;
+    supCurrentPage = Math.min(supCurrentPage, totalPages);
+
+    document.getElementById('supTotalPages').textContent = totalPages;
+    document.getElementById('supCurrentPage').textContent = supCurrentPage;
+
+    // First hide everything (including noResultsRow)
+    allRows.forEach(row => row.style.display = 'none');
+    document.getElementById('noResultsRow').style.display = 'none';
+
+    // If there are no rows to show, display the "no results" row
+    if (rowsToPaginate.length === 0 && filteredRows !== null) {
+      document.getElementById('noResultsRow').style.display = '';
+      return;
+    }
+
+    // Show paginated slice
+    const start = (supCurrentPage - 1) * supRowsPerPage;
+    const end = supCurrentPage * supRowsPerPage;
+    rowsToPaginate.slice(start, end).forEach(row => row.style.display = '');
+
+    // Enable/disable navigation
+    document.getElementById('supPrev').disabled = supCurrentPage === 1;
+    document.getElementById('supNext').disabled = supCurrentPage === totalPages;
+  }
+
+  function changeSupplierPage(direction) {
+    supCurrentPage += direction;
+    paginateSupplierTable();
+  }
+
+  function filterSupplierTable() {
+    const query = document.getElementById('supplierSearchInput').value.toLowerCase().trim();
+    const allRows = Array.from(document.querySelectorAll('#supplierTableBody tr:not(#noResultsRow)'));
+
+    if (query === '') {
+      filteredRows = null; // Reset filter
+    } else {
+      filteredRows = allRows.filter(row => {
+        const cells = row.querySelectorAll('td');
+        const code = (cells[0]?.textContent || '').toLowerCase();
+        const name = (cells[1]?.textContent || '').toLowerCase();
+        return code.includes(query) || name.includes(query);
+      });
+    }
+
+    supCurrentPage = 1;
+    paginateSupplierTable();
+  }
+
+  // Event bindings
+  document.addEventListener('DOMContentLoaded', paginateSupplierTable);
+  document.getElementById('supplierSearchInput').addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      filterSupplierTable();
+    }
+  });
+  document.getElementById('supplierSearchIcon').addEventListener('click', filterSupplierTable);
+  document.getElementById('supplierFilterMenu').addEventListener('click', () => {
+    alert('Filter options coming soon...');
+  });
+
+
+  // Run once on page load
+document.addEventListener('DOMContentLoaded', () => {
+  // Delegate all "Add more" clicks
+  document.querySelectorAll('.add-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const field = btn.dataset.fieldName;       // e.g. "EmailAddress"
+      const container = btn.closest('.multi-field').querySelector('.fields-wrap');
+      // Clone the first row:
+      const prototype = container.querySelector('.field-row');
+      const clone = prototype.cloneNode(true);
+      const input = clone.querySelector('input');
+      input.value = '';                          // clear old value
+      // Re-id it so each is unique (optional):
+      const idx = container.querySelectorAll('.field-row').length;
+      input.id = `${input.name.replace('[]','')}_${idx}`;
+      container.appendChild(clone);
+    });
+  });
+});
+
+// Pin-open on click
+document.querySelectorAll('.toggle-dropdown').forEach(icon => {
+  icon.addEventListener('click', e => {
+    const wrapper = icon.closest('.dropdown-wrapper');
+    wrapper.classList.toggle('open');
+    e.stopPropagation();
+  });
+});
+
+// Close when clicking outside
+document.addEventListener('click', () => {
+  document.querySelectorAll('.dropdown-wrapper.open')
+          .forEach(w => w.classList.remove('open'));
+});
+
+function clearAddSupplierForm() {
+  const form = document.getElementById('createSupplierForm');
+  form.reset(); // Reset all form fields
+  
+  // Uncheck all category radio buttons
+  document.getElementById('id_Category_ING').checked = false;
+  document.getElementById('id_Category_PCK').checked = false;
+  document.getElementById('id_Category_Both').checked = false;
+  
+  // Clear supplier code
+  document.getElementById('id_SupplierCode').value = '';
+  
+  // Clear all additional fields that were added dynamically
+  const multiFields = form.querySelectorAll('.fields-wrap');
+  multiFields.forEach(container => {
+    // Keep only the first field row and clear its value
+    const rows = container.querySelectorAll('.field-row');
+    rows.forEach((row, index) => {
+      if (index === 0) {
+        row.querySelector('input').value = '';
+      } else {
+        row.remove();
+      }
+    });
+  });
+}
+
+function clearUpdateSupplierForm() {
+  const form = document.getElementById('updateSupplierForm');
+  form.reset(); // Reset all form fields
+  
+  // Uncheck all category radio buttons
+  document.getElementById('updateCategory_ING').checked = false;
+  document.getElementById('updateCategory_PCK').checked = false;
+  document.getElementById('updateCategory_Both').checked = false;
+  
+  // Clear supplier code displays
+  document.getElementById('modalSupplierCode').value = '';
+  document.getElementById('modalSupplierCodeHidden').value = '';
+  
+  // Clear password field
+  document.getElementById('updatePassword').value = '';
+  
+  // Clear point person
+  document.getElementById('modalPointPerson').value = '';
+  
+  // Reset all multi-field containers to single empty field
+  ['updateContactContainer', 'updateEmailContainer', 'updateSocialMediaContainer'].forEach(containerId => {
+    const container = document.getElementById(containerId);
+    if (container) {
+      // Keep only first row and clear its value
+      const rows = container.querySelectorAll('.field-row');
+      rows.forEach((row, index) => {
+        if (index === 0) {
+          row.querySelector('input').value = '';
+        } else {
+          row.remove();
+        }
+      });
+    }
+  });
+}
+</script>
+
+</body>
+</html>
